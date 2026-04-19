@@ -1,12 +1,34 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null)
+  const router = useRouter()
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    router.push('/')
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
       background: '#0a0a0a',
       color: '#f5f5f5',
-      fontFamily: "'Inter', system-ui, sans-serif",
+      fontFamily: 'system-ui, sans-serif',
     }}>
 
       {/* Nav */}
@@ -25,24 +47,66 @@ export default function Home() {
           <div style={{ fontSize: '1.1rem', fontWeight: '800', letterSpacing: '-0.02em' }}>
             auto<span style={{ color: '#c8f55a' }}>facture</span>
           </div>
-          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-            <Link href="/pricing" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Tarifs</Link>
-            <Link href="/auth" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Connexion</Link>
-            <Link href="/auth" style={{
-              background: '#c8f55a', color: '#0a0a0a',
-              padding: '0.5rem 1.2rem', borderRadius: '8px',
-              fontWeight: '700', fontSize: '0.85rem', textDecoration: 'none',
-              letterSpacing: '-0.01em'
-            }}>
-              Commencer gratuitement
-            </Link>
-          </div>
+
+          {user ? (
+            // Nav connecté
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+              <Link href="/dashboard" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Dashboard</Link>
+              <Link href="/factures" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Factures</Link>
+              <Link href="/clients" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Clients</Link>
+
+              {/* Avatar / Menu compte */}
+              <div style={{ position: 'relative' }} className="account-menu">
+                <Link href="/compte" style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  padding: '0.4rem 0.9rem', borderRadius: '100px',
+                  textDecoration: 'none', color: '#f5f5f5',
+                  fontSize: '0.82rem', fontWeight: '600'
+                }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: '#c8f55a', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.7rem', fontWeight: '800', color: '#0a0a0a'
+                  }}>
+                    {user.email?.[0].toUpperCase()}
+                  </div>
+                  Mon compte
+                </Link>
+              </div>
+
+              <button onClick={handleLogout} style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.4)',
+                padding: '0.4rem 0.9rem', borderRadius: '8px',
+                fontWeight: '600', fontSize: '0.82rem',
+                cursor: 'pointer', fontFamily: 'inherit'
+              }}>
+                Déconnexion
+              </button>
+            </div>
+          ) : (
+            // Nav non connecté
+            <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+              <Link href="/pricing" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Tarifs</Link>
+              <Link href="/auth" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '500' }}>Connexion</Link>
+              <Link href="/auth" style={{
+                background: '#c8f55a', color: '#0a0a0a',
+                padding: '0.5rem 1.2rem', borderRadius: '8px',
+                fontWeight: '700', fontSize: '0.85rem', textDecoration: 'none',
+              }}>
+                Commencer gratuitement
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Hero */}
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '7rem 2rem 5rem', textAlign: 'center' }}>
-        
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
           background: 'rgba(200,245,90,0.08)',
@@ -50,7 +114,6 @@ export default function Home() {
           color: '#c8f55a', padding: '0.35rem 1rem',
           borderRadius: '100px', fontSize: '0.75rem',
           fontWeight: '600', marginBottom: '2rem',
-          letterSpacing: '0.02em'
         }}>
           <span style={{ width: '6px', height: '6px', background: '#c8f55a', borderRadius: '50%', display: 'inline-block' }}></span>
           Conçu pour les auto-entrepreneurs français
@@ -60,7 +123,6 @@ export default function Home() {
           fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
           fontWeight: '900', lineHeight: 1.05,
           letterSpacing: '-0.04em', margin: '0 0 1.5rem',
-          maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto'
         }}>
           La facturation qui<br />
           <span style={{
@@ -80,13 +142,12 @@ export default function Home() {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '4rem' }}>
-          <Link href="/auth" style={{
+          <Link href={user ? '/dashboard' : '/auth'} style={{
             background: '#c8f55a', color: '#0a0a0a',
             padding: '0.9rem 2rem', borderRadius: '10px',
             fontWeight: '800', fontSize: '0.95rem', textDecoration: 'none',
-            letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '0.5rem'
           }}>
-            Créer mon compte gratuit <span>→</span>
+            {user ? 'Aller au dashboard →' : 'Créer mon compte gratuit →'}
           </Link>
           <Link href="/pricing" style={{
             background: 'rgba(255,255,255,0.04)',
@@ -131,47 +192,14 @@ export default function Home() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.06)', borderRadius: '16px', overflow: 'hidden' }}>
           {[
-            {
-              icon: '⚡',
-              title: 'PDF instantané',
-              desc: 'Factures aux normes françaises générées en un clic. SIRET, TVA, mentions légales — tout est inclus automatiquement.',
-              color: '#c8f55a'
-            },
-            {
-              icon: '🔔',
-              title: 'Relances automatiques',
-              desc: 'AutoFacture envoie des relances graduelles à tes clients en retard. J+1, J+15, J+30 — sans que tu n\'aies à y penser.',
-              color: '#5ab4f5'
-            },
-            {
-              icon: '📊',
-              title: 'Suivi en temps réel',
-              desc: 'Visualise ton chiffre d\'affaires, ta TVA collectée et tes impayés en un coup d\'œil depuis ton dashboard.',
-              color: '#f5a623'
-            },
-            {
-              icon: '🔒',
-              title: 'Connexion sans mot de passe',
-              desc: 'Accès sécurisé par Magic Link. Un email, un clic, tu es connecté. Aucun mot de passe à retenir.',
-              color: '#c8f55a'
-            },
-            {
-              icon: '💼',
-              title: 'Gestion des clients',
-              desc: 'Sauvegarde tes clients et réutilise leurs informations en un clic. Fini de re-saisir les mêmes données.',
-              color: '#5ab4f5'
-            },
-            {
-              icon: '💳',
-              title: 'Abonnement flexible',
-              desc: 'Commence gratuitement avec 5 factures/mois. Passe Pro à 9€/mois quand ton activité décolle.',
-              color: '#f5a623'
-            },
+            { icon: '⚡', title: 'PDF instantané', desc: 'Factures aux normes françaises générées en un clic. SIRET, TVA, mentions légales — tout inclus.', color: '#c8f55a' },
+            { icon: '🔔', title: 'Relances automatiques', desc: "AutoFacture envoie des relances graduelles à tes clients en retard. J+1, J+15, J+30 — sans y penser.", color: '#5ab4f5' },
+            { icon: '📊', title: 'Suivi en temps réel', desc: "Visualise ton chiffre d'affaires, ta TVA et tes impayés en un coup d'œil.", color: '#f5a623' },
+            { icon: '🔒', title: 'Connexion sécurisée', desc: 'Email + mot de passe ou Magic Link. Accès sécurisé, aucun mot de passe à retenir.', color: '#c8f55a' },
+            { icon: '💼', title: 'Gestion des clients', desc: 'Sauvegarde tes clients et réutilise leurs infos en un clic. Fini de re-saisir.', color: '#5ab4f5' },
+            { icon: '💳', title: 'Abonnement flexible', desc: 'Commence gratuitement. Passe Pro à 9€/mois quand ton activité décolle.', color: '#f5a623' },
           ].map(f => (
-            <div key={f.title} style={{
-              background: '#111111',
-              padding: '2rem',
-            }}>
+            <div key={f.title} style={{ background: '#111111', padding: '2rem' }}>
               <div style={{
                 width: '40px', height: '40px', borderRadius: '10px',
                 background: `${f.color}15`,
@@ -188,32 +216,24 @@ export default function Home() {
       </div>
 
       {/* CTA final */}
-      <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        padding: '6rem 2rem', textAlign: 'center'
-      }}>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '6rem 2rem', textAlign: 'center' }}>
         <h2 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-0.04em', margin: '0 0 1rem' }}>
           Prêt à gagner du temps ?
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.35)', marginBottom: '2rem', fontSize: '0.95rem' }}>
           Gratuit pour commencer · Sans carte bancaire · Annulable à tout moment
         </p>
-        <Link href="/auth" style={{
+        <Link href={user ? '/dashboard' : '/auth'} style={{
           background: '#c8f55a', color: '#0a0a0a',
           padding: '1rem 2.5rem', borderRadius: '10px',
           fontWeight: '800', fontSize: '1rem', textDecoration: 'none',
-          letterSpacing: '-0.01em'
         }}>
-          Commencer gratuitement →
+          {user ? 'Aller au dashboard →' : 'Commencer gratuitement →'}
         </Link>
       </div>
 
       {/* Footer */}
-      <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        padding: '2rem', textAlign: 'center',
-        color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem'
-      }}>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem' }}>
         © 2025 AutoFacture · Fait pour les freelances français
       </div>
 
