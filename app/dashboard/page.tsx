@@ -120,15 +120,10 @@ export default function Dashboard() {
           <Link href="/" style={{ fontSize: '1rem', fontWeight: '800', letterSpacing: '-0.02em', textDecoration: 'none', color: '#f5f5f5' }}>
             auto<span style={{ color: '#c8f55a' }}>facture</span>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{
-              background: 'rgba(200,245,90,0.08)',
-              border: '1px solid rgba(200,245,90,0.15)',
-              color: '#c8f55a', padding: '0.3rem 0.8rem',
-              borderRadius: '100px', fontSize: '0.72rem', fontWeight: '700'
-            }}>
-              Plan Gratuit
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <Link href="/factures" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '500' }}>Factures</Link>
+            <Link href="/clients" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '500' }}>Clients</Link>
+            <Link href="/compte" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '500' }}>Mon compte</Link>
             <Link href="/pricing" style={{
               background: '#c8f55a', color: '#0a0a0a',
               padding: '0.45rem 1rem', borderRadius: '7px',
