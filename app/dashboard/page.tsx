@@ -1,9 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { generateFacturePDF } from '@/lib/generatePDF'
+import { createBrowserClient } from '@supabase/ssr'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
-export default function Dashboard() {
+function DashboardContent() {
   const [form, setForm] = useState({
     numero: 'F-001',
     date_emission: new Date().toISOString().split('T')[0],
@@ -21,6 +24,39 @@ export default function Dashboard() {
     notes: ''
   })
 
+  const searchParams = useSearchParams()
+  const success = searchParams.get('success')
+  const router = useRouter()
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/auth'); return }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        setForm(f => ({
+          ...f,
+          from_nom: profile.nom || '',
+          from_adresse: profile.adresse || '',
+          from_siret: profile.siret || '',
+          from_email: user.email || '',
+        }))
+      }
+    }
+    load()
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
@@ -29,7 +65,10 @@ export default function Dashboard() {
   const tva = ht * Number(form.tva_pct) / 100
   const ttc = ht + tva
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
     generateFacturePDF({
       numero: form.numero,
       date_emission: form.date_emission,
@@ -50,6 +89,19 @@ export default function Dashboard() {
         prix_ht: Number(form.prix_ht),
       }],
       tva_pct: Number(form.tva_pct),
+      notes: form.notes
+    })
+
+    // Sauvegarde en base
+    await supabase.from('factures').insert({
+      user_id: user.id,
+      numero: form.numero,
+      date_emission: form.date_emission,
+      date_echeance: form.date_echeance,
+      montant_ht: ht,
+      tva_pct: Number(form.tva_pct),
+      statut: 'pending',
+      lignes: [{ description: form.description, qty: Number(form.qty), prix_ht: Number(form.prix_ht) }],
       notes: form.notes
     })
   }
@@ -97,12 +149,7 @@ export default function Dashboard() {
   )
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0a',
-      color: '#f5f5f5',
-      fontFamily: "'Inter', system-ui, sans-serif",
-    }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'system-ui, sans-serif' }}>
 
       {/* Nav */}
       <nav style={{
@@ -137,6 +184,27 @@ export default function Dashboard() {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2.5rem 2rem' }}>
 
+        {/* Message succès paiement */}
+        {success === '1' && (
+          <div style={{
+            background: 'rgba(77,219,138,0.08)',
+            border: '1px solid rgba(77,219,138,0.2)',
+            borderRadius: '12px', padding: '1rem 1.5rem',
+            marginBottom: '1.5rem',
+            display: 'flex', alignItems: 'center', gap: '1rem'
+          }}>
+            <div style={{ fontSize: '1.5rem' }}>🎉</div>
+            <div>
+              <div style={{ fontWeight: '700', color: '#4ddb8a', marginBottom: '0.2rem' }}>
+                Abonnement activé !
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
+                Bienvenue dans le Plan Pro. Tu as maintenant accès à toutes les fonctionnalités.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.6rem', fontWeight: '800', letterSpacing: '-0.03em', margin: '0 0 0.3rem' }}>
@@ -152,7 +220,6 @@ export default function Dashboard() {
           {/* Colonne gauche */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-            {/* Infos facture */}
             <div style={cardStyle}>
               {sectionTitle('Informations facture')}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
@@ -169,9 +236,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* De / À */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-
               <div style={cardStyle}>
                 {sectionTitle('De — toi', '#5ab4f5')}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
@@ -205,7 +270,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Prestation */}
             <div style={cardStyle}>
               {sectionTitle('Prestation', '#4ddb8a')}
               <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', gap: '1rem' }}>
@@ -223,7 +287,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Notes */}
             <div style={cardStyle}>
               {sectionTitle('Notes', 'rgba(255,255,255,0.2)')}
               <textarea
@@ -232,21 +295,14 @@ export default function Dashboard() {
                 style={{ ...inputStyle, height: '90px', resize: 'vertical' }}
               />
             </div>
-
           </div>
 
-          {/* Colonne droite — récap */}
+          {/* Colonne droite */}
           <div style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-            <div style={{
-              background: '#111111',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: '14px', padding: '1.8rem'
-            }}>
+            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '1.8rem' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.5rem' }}>
                 Récapitulatif
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)' }}>Sous-total HT</span>
@@ -262,7 +318,6 @@ export default function Dashboard() {
                   <span style={{ fontWeight: '800', fontSize: '1.3rem', color: '#c8f55a' }}>{ttc.toFixed(2)} €</span>
                 </div>
               </div>
-
               <button onClick={handleGenerate} style={{
                 width: '100%', padding: '0.9rem',
                 background: '#c8f55a', border: 'none',
@@ -273,29 +328,28 @@ export default function Dashboard() {
               }}>
                 ⬇ Télécharger le PDF
               </button>
-
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.8rem', marginBottom: 0 }}>
                 PDF conforme aux normes françaises
               </p>
             </div>
 
-            {/* Tip */}
-            <div style={{
-              background: 'rgba(200,245,90,0.04)',
-              border: '1px solid rgba(200,245,90,0.1)',
-              borderRadius: '12px', padding: '1.2rem'
-            }}>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(200,245,90,0.7)', fontWeight: '600', marginBottom: '0.4rem' }}>
-                💡 Astuce
-              </div>
+            <div style={{ background: 'rgba(200,245,90,0.04)', border: '1px solid rgba(200,245,90,0.1)', borderRadius: '12px', padding: '1.2rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(200,245,90,0.7)', fontWeight: '600', marginBottom: '0.4rem' }}>💡 Astuce</div>
               <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
                 Passe en <Link href="/pricing" style={{ color: '#c8f55a', textDecoration: 'none', fontWeight: '600' }}>Plan Pro</Link> pour des factures illimitées et des relances automatiques.
               </div>
             </div>
-
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>Chargement...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }
