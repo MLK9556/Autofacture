@@ -20,11 +20,17 @@ export default function Pricing() {
       return
     }
 
+    const { data: { session } } = await supabase.auth.getSession()
+
     const res = await fetch('/api/checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
       body: JSON.stringify({ plan })
     })
+
     const { url, error } = await res.json()
     if (error) {
       alert('Erreur lors du paiement, réessaie.')
@@ -133,7 +139,8 @@ export default function Pricing() {
           Choisissez votre plan
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>
-          Commencez gratuitement. Passez Pro quand vous êtes prêt.<br />Annulez à tout moment, sans engagement.
+          Commencez gratuitement. Passez Pro quand vous êtes prêt.<br />
+          Annulez à tout moment, sans engagement.
         </p>
       </div>
 
@@ -156,6 +163,7 @@ export default function Pricing() {
             display: 'flex',
             flexDirection: 'column',
           }}>
+
             {plan.popular && (
               <div style={{
                 position: 'absolute', top: '-13px', left: '50%',
@@ -169,6 +177,7 @@ export default function Pricing() {
               </div>
             )}
 
+            {/* Nom + prix */}
             <div style={{ marginBottom: '1.8rem' }}>
               <div style={{
                 fontSize: '0.72rem', fontWeight: '800',
@@ -192,6 +201,7 @@ export default function Pricing() {
               )}
             </div>
 
+            {/* Features */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '2rem' }}>
               {plan.features.map(f => (
                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', fontSize: '0.87rem' }}>
@@ -208,6 +218,7 @@ export default function Pricing() {
               ))}
             </div>
 
+            {/* Bouton */}
             <button
               onClick={() => plan.href ? window.location.href = plan.href : handleUpgrade(plan.id)}
               disabled={loading === plan.id}
@@ -224,12 +235,16 @@ export default function Pricing() {
             >
               {loading === plan.id ? 'Chargement...' : plan.cta}
             </button>
+
           </div>
         ))}
       </div>
 
       {/* FAQ */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '4rem 2rem', maxWidth: '700px', margin: '0 auto' }}>
+      <div style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '4rem 2rem', maxWidth: '700px', margin: '0 auto'
+      }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-0.03em', marginBottom: '2rem', textAlign: 'center' }}>
           Questions fréquentes
         </h2>
@@ -252,7 +267,11 @@ export default function Pricing() {
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem' }}>
+      <div style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '2rem', textAlign: 'center',
+        color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem'
+      }}>
         © 2025 AutoFacture · Fait pour les freelances français
       </div>
 
