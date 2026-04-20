@@ -6,13 +6,13 @@ export const PLANS = {
   pro: {
     name: 'Pro',
     price: 9,
-    priceId: 'prod_UMjS0b9a4toYuC',
+    priceId: 'price_1TNzzp2H8taWJLST5Rmz0gFR',
     features: ['Factures illimitées', 'Relances auto', 'Export comptable']
   },
   business: {
     name: 'Business',
     price: 19,
-    priceId: 'prod_UMjTA2gwfSECao',
+    priceId: 'price_1TO00W2H8taWJLSTH3tXDEuq',
     features: ['Tout Pro', 'Multi-users', 'API access']
   }
 }
